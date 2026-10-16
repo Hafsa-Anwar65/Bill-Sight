@@ -18,7 +18,7 @@ def test_retry_fixes_a_bad_read(png_bytes):
     bad["taxes"][1]["amount"] = 3381.98
     calls = []
 
-    def reader(prompt, jpeg):
+    def reader(prompt, doc, mime):
         calls.append(prompt)
         return bad if len(calls) == 1 else good
 
@@ -30,7 +30,7 @@ def test_retry_fixes_a_bad_read(png_bytes):
 
 def test_cache_hit(png_bytes):
     n = []
-    reader = lambda p, j: n.append(1) or load("iesco_2026-09_58")  # noqa: E731
+    reader = lambda p, d, m: n.append(1) or load("iesco_2026-09_58")  # noqa: E731
     extract.extract_bill(png_bytes, reader=reader)
     again = extract.extract_bill(png_bytes, reader=reader)
     assert again.cached and len(n) == 1
@@ -59,7 +59,7 @@ def test_csvs_have_no_blank_rows_and_parse():
 def test_api_round_trip(png_bytes, monkeypatch):
     from app.api import app
 
-    monkeypatch.setattr(extract, "_gemini_reader", lambda p, j: load("ke_2026-09_159"))
+    monkeypatch.setattr(extract, "_gemini_reader", lambda p, d, m: load("ke_2026-09_159"))
     client = TestClient(app)
     assert client.get("/api/health").json()["ok"]
 
@@ -73,4 +73,46 @@ def test_api_round_trip(png_bytes, monkeypatch):
     assert exp["level1_csv"].startswith("bill_id,json\nKESC_0002,")
     assert exp["level2_csv"].count("\nKESC_0002,Q") == 12
 
-    assert client.post("/api/analyze", files={"file": ("x.pdf", b"%PDF", "application/pdf")}).status_code == 415
+    assert len(body["insights"]) >= 3
+    assert client.post("/api/analyze", files={"file": ("x.txt", b"hello", "text/plain")}).status_code == 415
+
+
+def test_pdf_is_sent_as_pdf():
+    from app import llm
+
+    pdf = b"%PDF-1.7 fake"
+    assert llm.prepare_document(pdf) == (pdf, "application/pdf")
+    seen = []
+    extract.extract_bill(pdf, use_cache=False, reader=lambda p, d, m: seen.append(m) or load("iesco_2026-09_177"))
+    assert seen == ["application/pdf"]
+
+
+def test_small_images_are_upscaled():
+    import io
+
+    from PIL import Image
+
+    from app import llm
+
+    buf = io.BytesIO()
+    Image.new("RGB", (700, 1000), "white").save(buf, format="PNG")
+    out = Image.open(io.BytesIO(llm.prepare_image(buf.getvalue())))
+    assert max(out.size) == 1600
+
+
+def test_ask_rejects_made_up_numbers(monkeypatch):
+    from app import llm, service
+
+    replies = iter(["Your bill is Rs 99,999 because of tax.", "Your payable is Rs 7,621."])
+    monkeypatch.setattr(llm, "generate_text", lambda prompt: next(replies))
+    bill = normalize(RawExtraction.model_validate(load("ke_2026-09_159")))[0]
+    assert service.ask(bill, "why so high?") == "Your payable is Rs 7,621."
+
+
+def test_insights_are_factual():
+    from app.analysis import insights
+
+    bill = normalize(RawExtraction.model_validate(load("ke_2026-04_286")))[0]
+    titles = [i["title"] for i in insights(bill)]
+    assert "Pay by 20 Apr 2026 to save Rs 724.07" in titles
+    assert "Peak units cost Rs 46.85 vs Rs 34.53 off-peak" in titles

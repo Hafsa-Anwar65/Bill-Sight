@@ -136,6 +136,23 @@ def run_checks(bill: Bill) -> list[Check]:
             "dates", "Due date after issue date", ok,
             f"Issued {bill.issue_date}, due {bill.due_date}.", warn_only=True,
         ))
+
+    # 9. Billing month matches the issue date ------------------------------ #
+    if bill.bill_month and bill.issue_date:
+        issued = bill.issue_date[:7]
+        ok = issued in (bill.bill_month, shift_month(bill.bill_month, 1), shift_month(bill.bill_month, -1))
+        checks.append(_check(
+            "month", "Billing month fits the issue date", ok,
+            f"Bill month {bill.bill_month}, issued {bill.issue_date}.", warn_only=True,
+        ))
+
+    # 10. Fuel adjustment refers to an earlier month ----------------------- #
+    if bill.fpa_reference_month and bill.bill_month:
+        ok = bill.fpa_reference_month < bill.bill_month
+        checks.append(_check(
+            "fpa_month", "Fuel adjustment month is in the past", ok,
+            f"Adjustment for {bill.fpa_reference_month}, bill for {bill.bill_month}.", warn_only=True,
+        ))
     return checks
 
 

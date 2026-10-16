@@ -3,6 +3,7 @@ import { analyzeBill, exportCsv } from "../api";
 import type { Analysis } from "../types";
 import { download, monthLabel, num, rs } from "../format";
 import Dropzone from "./Dropzone";
+import { toast } from "../toast";
 import BillView from "./BillView";
 
 interface Row {
@@ -48,9 +49,14 @@ export default function BatchRun() {
   };
 
   const exportAll = async () => {
-    const out = await exportCsv(rows.map((r) => ({ bill_id: r.id, bill: r.result?.bill ?? null })));
-    download("level1.csv", out.level1_csv);
-    download("level2.csv", out.level2_csv);
+    try {
+      const out = await exportCsv(rows.map((r) => ({ bill_id: r.id, bill: r.result?.bill ?? null })));
+      download("level1.csv", out.level1_csv);
+      download("level2.csv", out.level2_csv);
+      toast("level1.csv and level2.csv downloaded");
+    } catch (e) {
+      toast((e as Error).message, "error");
+    }
   };
 
   const done = rows.filter((r) => r.state === "done").length;
@@ -65,7 +71,7 @@ export default function BatchRun() {
           extracted JSON and level2.csv with all 12 answers per bill.
         </p>
       </div>
-      <Dropzone multiple onFiles={start} title="Drop all bill images here" hint="They are read two at a time." />
+      <Dropzone multiple onFiles={start} title="Drop all bill images here" hint="PNG, JPG, WEBP or PDF. They are read two at a time." />
 
       {rows.length > 0 && (
         <div className="card pad">

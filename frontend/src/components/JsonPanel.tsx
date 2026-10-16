@@ -1,22 +1,28 @@
 import { useState } from "react";
 import { exportCsv } from "../api";
 import type { Analysis } from "../types";
-import { download } from "../format";
+import { copyText, download } from "../format";
+import { toast } from "../toast";
 
 export default function JsonPanel({ data }: { data: Analysis }) {
   const [copied, setCopied] = useState(false);
   const json = JSON.stringify(data.level1, null, 2);
 
   const copy = async () => {
-    await navigator.clipboard.writeText(json);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    const ok = await copyText(json);
+    toast(ok ? "JSON copied" : "Could not copy to the clipboard", ok ? "ok" : "error");
+    if (ok) { setCopied(true); setTimeout(() => setCopied(false), 1500); }
   };
 
   const csv = async () => {
-    const out = await exportCsv([{ bill_id: data.bill_id, bill: data.bill }]);
-    download(`${data.bill_id}_level1.csv`, out.level1_csv);
-    download(`${data.bill_id}_level2.csv`, out.level2_csv);
+    try {
+      const out = await exportCsv([{ bill_id: data.bill_id, bill: data.bill }]);
+      download(`${data.bill_id}_level1.csv`, out.level1_csv);
+      download(`${data.bill_id}_level2.csv`, out.level2_csv);
+      toast("CSV files downloaded");
+    } catch (e) {
+      toast((e as Error).message, "error");
+    }
   };
 
   return (

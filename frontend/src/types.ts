@@ -57,6 +57,8 @@ export interface Summary {
   series: SeriesPoint[];
 }
 
+export interface Insight { kind: "save" | "warn" | "good" | "info"; title: string; detail: string }
+
 export interface Analysis {
   bill_id: string;
   image_hash: string;
@@ -68,6 +70,7 @@ export interface Analysis {
   checks: Check[];
   answers: Answer[];
   summary: Summary;
+  insights: Insight[];
 }
 
 export interface Health { ok: boolean; model: string; api_key_set: boolean }

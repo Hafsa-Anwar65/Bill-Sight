@@ -1,10 +1,13 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { getHealth } from "./api";
 import SingleBill from "./components/SingleBill";
 import BatchRun from "./components/BatchRun";
-import Background3D from "./components/Background3D";
+import ErrorBoundary from "./components/ErrorBoundary";
+import Toaster from "./components/Toaster";
 import { Bolt, Moon, Sun, Upload } from "./components/Icons";
 import { applyTheme, initialTheme, type Theme } from "./theme";
+
+const Background3D = lazy(() => import("./components/Background3D"));
 
 type Mode = "single" | "batch";
 
@@ -30,7 +33,7 @@ export default function App() {
 
   return (
     <>
-      <Background3D theme={theme} />
+      <Suspense fallback={null}><Background3D theme={theme} /></Suspense>
       <div className="bg-wash" aria-hidden="true" />
       <header className="topbar">
         <div className="topbar-inner">
@@ -66,9 +69,10 @@ export default function App() {
 
       <div className="app">
         {problem && <p className="banner error">{problem}</p>}
-        <main>{mode === "single" ? <SingleBill key={resetKey} /> : <BatchRun />}</main>
+        <main><ErrorBoundary key={`${mode}-${resetKey}`}>{mode === "single" ? <SingleBill key={resetKey} /> : <BatchRun />}</ErrorBoundary></main>
       </div>
 
+      <Toaster />
       <footer className="footer">
         <div className="footer-inner">
           <span className="brand-mini"><span className="brand-mark sm"><Bolt /></span> Billsight</span>

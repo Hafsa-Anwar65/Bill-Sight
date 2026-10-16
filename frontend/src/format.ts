@@ -41,9 +41,27 @@ export const TYPE_LABEL: Record<string, string> = {
   other_tax: "Taxes",
 };
 
-export function download(name: string, text: string) {
-  const url = URL.createObjectURL(new Blob([text], { type: "text/csv;charset=utf-8" }));
+export function download(name: string, text: string, type = "text/csv;charset=utf-8") {
+  const url = URL.createObjectURL(new Blob([text], { type }));
   const a = Object.assign(document.createElement("a"), { href: url, download: name });
+  document.body.appendChild(a);
   a.click();
-  URL.revokeObjectURL(url);
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+
+export async function copyText(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    const area = Object.assign(document.createElement("textarea"), { value: text });
+    document.body.appendChild(area);
+    area.select();
+    const ok = document.execCommand("copy");
+    area.remove();
+    return ok;
+  }
+}
+
+export const isPdf = (f: File) => f.type === "application/pdf" || /\.pdf$/i.test(f.name);

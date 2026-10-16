@@ -1,5 +1,6 @@
 import { useRef, useState, type DragEvent } from "react";
 import { Upload } from "./Icons";
+import { toast } from "../toast";
 
 interface Props {
   multiple?: boolean;
@@ -9,14 +10,25 @@ interface Props {
   compact?: boolean;
 }
 
-const ACCEPT = ["image/png", "image/jpeg", "image/webp"];
+export const ACCEPT = ".png,.jpg,.jpeg,.webp,.pdf,image/png,image/jpeg,image/webp,application/pdf";
+const OK_EXT = /\.(png|jpe?g|webp|pdf)$/i;
+const MAX = 15 * 1024 * 1024;
+
+export function pickValid(list: FileList | File[] | null): File[] {
+  const files = Array.from(list ?? []);
+  const good = files.filter((f) => OK_EXT.test(f.name) || /^image\/(png|jpeg|webp)$|^application\/pdf$/.test(f.type));
+  const small = good.filter((f) => f.size <= MAX);
+  if (files.length && !good.length) toast("Use a PNG, JPG, WEBP or PDF file.", "error");
+  else if (good.length > small.length) toast("Files over 15 MB were skipped.", "error");
+  return small;
+}
 
 export default function Dropzone({ multiple = false, onFiles, title, hint, compact = false }: Props) {
   const input = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
 
   const take = (list: FileList | null) => {
-    const files = Array.from(list ?? []).filter((f) => ACCEPT.includes(f.type));
+    const files = pickValid(list);
     if (files.length) onFiles(multiple ? files : files.slice(0, 1));
   };
 
@@ -24,7 +36,7 @@ export default function Dropzone({ multiple = false, onFiles, title, hint, compa
     <input
       ref={input}
       type="file"
-      accept={ACCEPT.join(",")}
+      accept={ACCEPT}
       multiple={multiple}
       hidden
       onChange={(e) => { take(e.target.files); e.target.value = ""; }}
@@ -53,7 +65,7 @@ export default function Dropzone({ multiple = false, onFiles, title, hint, compa
         <p className="dz-hint">{hint}</p>
       </div>
       <button className="btn primary" onClick={() => input.current?.click()}>
-        {multiple ? "Choose images" : "Choose image"}
+        {multiple ? "Choose files" : "Choose file"}
       </button>
       {picker}
     </div>

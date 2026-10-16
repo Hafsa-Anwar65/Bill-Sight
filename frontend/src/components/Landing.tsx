@@ -1,6 +1,9 @@
-import { useRef } from "react";
-import Dropzone from "./Dropzone";
-import { Bolt, Calendar, Check, Percent, Receipt, Shield, Sparkle, Upload } from "./Icons";
+import { useRef, useState } from "react";
+import type { Analysis } from "../types";
+import { dayLabel, monthLabel, rs } from "../format";
+import { clearRecent, loadRecent } from "../storage";
+import Dropzone, { ACCEPT, pickValid } from "./Dropzone";
+import { Bolt, Calendar, Check, Clock, Percent, Receipt, Shield, Sparkle, Upload } from "./Icons";
 
 const PROVIDERS = [
   { name: "K-Electric", region: "Karachi", tone: "ke" },
@@ -21,9 +24,12 @@ const MOCK = [
   { icon: Calendar, k: "Due date", v: "22 Sep", tone: "amber" },
 ];
 
-export default function Landing({ onFile }: { onFile: (f: File) => void }) {
+const PROVIDER_NAME: Record<string, string> = { KE: "K-Electric" };
+
+export default function Landing({ onFile, onOpen }: { onFile: (f: File) => void; onOpen: (d: Analysis) => void }) {
   const picker = useRef<HTMLInputElement>(null);
   const upload = () => picker.current?.click();
+  const [recent, setRecent] = useState(loadRecent);
 
   return (
     <div className="landing">
@@ -35,6 +41,7 @@ export default function Landing({ onFile }: { onFile: (f: File) => void }) {
             Upload your K-Electric, IESCO or LESCO bill. Billsight reads every line, confirms it adds up, and
             explains what you pay for in plain words.
           </p>
+          <p className="hint-line">Photo, scan or PDF. You can also paste a screenshot with Ctrl + V.</p>
           <div className="hero-actions">
             <button className="btn primary lg" onClick={upload}><Upload /> Upload a bill</button>
             <a className="btn ghost lg" href="#how">How it works</a>
@@ -42,9 +49,9 @@ export default function Landing({ onFile }: { onFile: (f: File) => void }) {
           <input
             ref={picker}
             type="file"
-            accept="image/png,image/jpeg,image/webp"
+            accept={ACCEPT}
             hidden
-            onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); e.target.value = ""; }}
+            onChange={(e) => { const [f] = pickValid(e.target.files); if (f) onFile(f); e.target.value = ""; }}
           />
         </div>
 
@@ -73,6 +80,27 @@ export default function Landing({ onFile }: { onFile: (f: File) => void }) {
           </div>
         </div>
       </section>
+
+      {recent.length > 0 && (
+        <section className="recent" aria-label="Recent bills">
+          <div className="panel-head row">
+            <h2 className="section-title"><Clock /> Recent bills</h2>
+            <button className="link" onClick={() => { clearRecent(); setRecent([]); }}>Clear</button>
+          </div>
+          <div className="recent-grid">
+            {recent.map(({ data, savedAt }) => (
+              <button key={data.image_hash} className="recent-card" onClick={() => onOpen(data)}>
+                <span className="recent-top">
+                  <span className="recent-provider">{PROVIDER_NAME[data.bill.provider ?? ""] ?? data.bill.provider ?? "Bill"}</span>
+                  <span className="muted small">Opened {dayLabel(savedAt.slice(0, 10))}</span>
+                </span>
+                <span className="recent-month">{monthLabel(data.bill.bill_month, true)}</span>
+                <span className="recent-amount">{rs(data.bill.payable_within_due_date)}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="providers" aria-label="Supported providers">
         {PROVIDERS.map((p) => (
@@ -106,7 +134,7 @@ export default function Landing({ onFile }: { onFile: (f: File) => void }) {
         <Dropzone
           onFiles={([f]) => onFile(f)}
           title="Drop your bill here"
-          hint="PNG, JPG or WEBP up to 15 MB. A straight, well-lit photo of the full page works best."
+          hint="PNG, JPG, WEBP or PDF up to 15 MB. A straight, well-lit photo of the full page works best."
         />
       </section>
     </div>

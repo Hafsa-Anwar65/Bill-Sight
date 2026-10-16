@@ -384,3 +384,83 @@ def summary(bill: Bill) -> dict:
             for r in facts.df.itertuples()
         ],
     }
+
+
+# --------------------------------------------------------------------------- #
+# Insights: short, factual tips shown on the dashboard
+# --------------------------------------------------------------------------- #
+def _tou_rates(bill: Bill) -> tuple[float, float, float, float] | None:
+    """(peak units, peak rate, off-peak units, off-peak rate) for time-of-use bills."""
+    regs = {r.name.lower(): r.units for r in bill.meter_registers if r.units}
+    peak_units = next((u for n, u in regs.items() if "peak" in n and "off" not in n), None)
+    off_units = next((u for n, u in regs.items() if "off" in n), None)
+    energy = [c for c in bill.charges if c.type == "energy"]
+    peak_amt = sum(c.amount for c in energy if "peak" in c.label.lower() and "off" not in c.label.lower())
+    off_amt = sum(c.amount for c in energy if "off" in c.label.lower())
+    if not (peak_units and off_units and peak_amt and off_amt):
+        return None
+    return peak_units, peak_amt / peak_units, off_units, off_amt / off_units
+
+
+def insights(bill: Bill) -> list[dict[str, str]]:
+    f = Facts(usage_frame(bill), bill)
+    out: list[dict[str, str]] = []
+
+    def add(kind: str, title: str, detail: str) -> None:
+        out.append({"kind": kind, "title": title, "detail": detail})
+
+    tiers = bill.late_payment_tiers
+    if tiers and tiers[0].surcharge:
+        add("save", f"Pay by {day(bill.due_date)} to save {rs(tiers[0].surcharge)}",
+            f"Paying late raises the bill to {rs(tiers[0].total_payable)}"
+            + (f", and to {rs(tiers[-1].total_payable)} later." if len(tiers) > 1 else "."))
+
+    tou = _tou_rates(bill)
+    if tou:
+        pu, pr, ou, orate = tou
+        saving = 0.1 * pu * (pr - orate)
+        if saving > 0:
+            add("save", f"Peak units cost {rs(round(pr, 2))} vs {rs(round(orate, 2))} off-peak",
+                f"You used {num(pu)} units in peak hours. Moving 10% of them to off-peak hours saves about {rs(round(saving))} a month.")
+
+    if bill.arrears and bill.arrears > 1:
+        add("warn", f"{rs(bill.arrears)} carried over from earlier bills",
+            "This amount is unpaid from previous months and is included in the payable total.")
+    elif bill.arrears and bill.arrears < -1:
+        add("good", f"You have a credit of {rs(-bill.arrears)}", "It has been deducted from this bill.")
+
+    if bill.history and bill.units_consumed is not None:
+        last = bill.history[-1]
+        if last.units:
+            change = (bill.units_consumed - last.units) / last.units * 100
+            if abs(change) >= 15:
+                add("good" if change < 0 else "warn",
+                    f"Usage {'down' if change < 0 else 'up'} {abs(change):.0f}% from last month",
+                    f"{num(bill.units_consumed)} units this month vs {num(last.units)} in {month_label(last.month)}.")
+
+    prev = f.previous12
+    if not prev.empty and bill.units_consumed is not None:
+        avg = prev["units"].mean()
+        if avg and bill.units_consumed > avg * 1.2:
+            add("warn", "Above your usual usage",
+                f"This month is {num(bill.units_consumed)} units, {((bill.units_consumed / avg) - 1) * 100:.0f}% above your 12-month average of {num(avg)}.")
+
+    subsidy = -bill.charges_of("subsidy")
+    if subsidy > 0:
+        add("good", f"Government subsidy saved you {rs(subsidy)}", "It is already deducted from your electricity charges.")
+
+    fpa = bill.charges_of("fpa")
+    if fpa > 0:
+        when = f" for {month_label(bill.fpa_reference_month)}" if bill.fpa_reference_month else ""
+        add("info", f"Fuel adjustment adds {rs(fpa)}", f"A charge for past fuel costs{when}, not for this month's usage.")
+
+    cost = month_cost(bill)
+    if cost and bill.total_taxes:
+        add("info", f"Taxes are {bill.total_taxes / cost * 100:.0f}% of this month's charges",
+            f"{rs(bill.total_taxes)} of {rs(cost)} goes to taxes and duties.")
+
+    est, _ = forecast_next(f)
+    if est is not None and bill.bill_month:
+        add("info", f"Expect about {num(est)} units in {month_label(shift_month(bill.bill_month, 1))}",
+            "Based on the same month last year, adjusted for how this year compares.")
+    return out

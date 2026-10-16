@@ -9,7 +9,7 @@ import time
 from functools import lru_cache
 from typing import Any
 
-from PIL import Image, ImageOps
+from PIL import Image, ImageFilter, ImageOps
 
 from .config import settings
 
@@ -20,6 +20,7 @@ class LLMError(RuntimeError):
 
 RETRYABLE = {429, 500, 502, 503, 504}
 MAX_SIDE = 2560
+MIN_SIDE = 1600  # small scans are upscaled so the model can read small print
 
 
 def model_name() -> str:
@@ -35,17 +36,33 @@ def _client():
     return genai.Client(api_key=settings.api_key)
 
 
+def is_pdf(data: bytes) -> bool:
+    return data[:5] == b"%PDF-"
+
+
+def prepare_document(data: bytes) -> tuple[bytes, str]:
+    """Bytes ready for the model and their MIME type. PDFs are sent as-is, images are cleaned up."""
+    if is_pdf(data):
+        return data, "application/pdf"
+    return prepare_image(data), "image/jpeg"
+
+
 def prepare_image(data: bytes) -> bytes:
-    """Fix phone-photo rotation, drop alpha, cap size. Returns JPEG bytes."""
+    """Fix phone-photo rotation, drop alpha, normalise size and sharpen slightly. Returns JPEG bytes."""
     try:
         img = Image.open(io.BytesIO(data))
         img = ImageOps.exif_transpose(img).convert("RGB")
     except Exception as exc:  # noqa: BLE001 - any decode failure means a bad upload
-        raise LLMError("This file is not a readable image (use PNG or JPG).") from exc
-    if max(img.size) > MAX_SIDE:
+        raise LLMError("This file is not a readable image. Upload a PNG, JPG, WEBP or PDF bill.") from exc
+    longest = max(img.size)
+    if longest > MAX_SIDE:
         img.thumbnail((MAX_SIDE, MAX_SIDE), Image.LANCZOS)
+    elif longest < MIN_SIDE:
+        factor = min(MIN_SIDE / longest, 3.0)
+        img = img.resize((round(img.width * factor), round(img.height * factor)), Image.LANCZOS)
+    img = img.filter(ImageFilter.UnsharpMask(radius=1.2, percent=60, threshold=3))
     out = io.BytesIO()
-    img.save(out, format="JPEG", quality=92)
+    img.save(out, format="JPEG", quality=93)
     return out.getvalue()
 
 
@@ -90,12 +107,12 @@ def _call(contents: list[Any], config: Any, retries: int = 4):
     raise LLMError("Gemini did not respond after several retries.")
 
 
-def generate_json(prompt: str, image_jpeg: bytes | None = None, schema: Any = None) -> dict[str, Any]:
+def generate_json(prompt: str, document: bytes | None = None, mime: str = "image/jpeg", schema: Any = None) -> dict[str, Any]:
     from google.genai import types
 
     contents: list[Any] = []
-    if image_jpeg is not None:
-        contents.append(types.Part.from_bytes(data=image_jpeg, mime_type="image/jpeg"))
+    if document is not None:
+        contents.append(types.Part.from_bytes(data=document, mime_type=mime))
     contents.append(prompt)
     config = types.GenerateContentConfig(
         temperature=settings.temperature,

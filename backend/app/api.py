@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -17,7 +17,8 @@ from .export import level1_csv, level2_csv
 from .schema import Bill
 
 MAX_UPLOAD = 15 * 1024 * 1024
-IMAGE_TYPES = {"image/png", "image/jpeg", "image/jpg", "image/webp"}
+ALLOWED_TYPES = {"image/png", "image/jpeg", "image/jpg", "image/webp", "application/pdf"}
+ALLOWED_EXT = {".png", ".jpg", ".jpeg", ".webp", ".pdf"}
 
 app = FastAPI(title="Billsight", version="2.0")
 app.add_middleware(
@@ -26,6 +27,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.exception_handler(Exception)
+async def unexpected_error(_: Request, exc: Exception) -> JSONResponse:
+    """Never show a stack trace to the user; log it and return a readable message."""
+    import logging
+
+    logging.getLogger("billsight").exception("Unhandled error", exc_info=exc)
+    return JSONResponse(status_code=500, content={"detail": "Something went wrong while processing the bill. Please try again."})
 
 
 class AskRequest(BaseModel):
@@ -49,13 +59,14 @@ def health() -> dict:
 
 @app.post("/api/analyze")
 async def analyze(file: UploadFile = File(...), use_cache: bool = True) -> dict:
-    if file.content_type not in IMAGE_TYPES:
-        raise HTTPException(415, "Upload a PNG, JPG or WEBP image of the bill.")
+    ext = Path(file.filename or "").suffix.lower()
+    if file.content_type not in ALLOWED_TYPES and ext not in ALLOWED_EXT:
+        raise HTTPException(415, "Upload the bill as a PNG, JPG, WEBP image or a PDF.")
     data = await file.read()
     if not data:
         raise HTTPException(400, "The file is empty.")
     if len(data) > MAX_UPLOAD:
-        raise HTTPException(413, "The image is larger than 15 MB.")
+        raise HTTPException(413, "The file is larger than 15 MB.")
     bill_id = Path(file.filename or "bill").stem
     try:
         return service.analyze(data, bill_id, use_cache=use_cache)

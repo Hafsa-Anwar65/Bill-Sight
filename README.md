@@ -9,6 +9,9 @@ Upload a photo of a Pakistani electricity bill (K-Electric, IESCO, LESCO and oth
 - the 12 WTQ Level-2 questions answered from the bill's own numbers,
 - a usage chart, a free-form "ask anything" box (English, Urdu or Roman Urdu),
 - `level1.csv` and `level2.csv` in the WTQ submission format, for one bill or a whole folder.
+- "What this bill tells you": factual tips such as the late fee you avoid, peak vs off-peak cost, arrears, subsidy and next month's forecast.
+- A due-date calendar reminder (.ics), a printable report, copy buttons, recent bills, light and dark themes.
+- Upload a photo, scan or PDF, or paste a screenshot with Ctrl + V.
 
 ## How accuracy is achieved
 
@@ -17,7 +20,8 @@ Upload a photo of a Pakistani electricity bill (K-Electric, IESCO, LESCO and oth
 | 1. Read | Gemini vision reads the bill into a strict JSON schema (temperature 0, seed 42). The prompt has layout rules for KE and WAPDA bills and tells the model to ignore handwriting and stamps. | `backend/app/prompts.py`, `extract.py` |
 | 2. Normalize | Python re-parses every date and month, re-classifies each line from its printed label, fixes subsidy signs and rebuilds the usage history. | `normalize.py` |
 | 3. Verify | Up to 8 arithmetic checks: lines vs printed totals, charges + taxes = current bill, charges + taxes + arrears = payable, units = meter readings, late tiers, history continuity. | `validate.py` |
-| 4. Retry | If a critical check fails, the bill is read again with the failed checks as feedback. The best attempt is kept. | `extract.py` |
+| 4. Retry | If a check fails, the bill is read again with the failed checks as feedback. The best attempt is kept. | `extract.py` |
+| 6. Guard | Free-form chat answers are scanned for numbers; any number not found in the bill data triggers a corrected answer. | `service.py` |
 | 5. Answer | The 12 questions are answered with pandas, not by the language model, so every number is computed and every answer states its months and method. | `analysis.py` |
 
 The language model is only used to read the image (step 1) and for the optional free-form question box.
@@ -32,7 +36,7 @@ cd backend
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
-python -m pytest                 # 77 tests, no API key needed
+python -m pytest                 # 81 tests, no API key needed
 ```
 
 ## Run the web app
@@ -124,7 +128,7 @@ backend/
     export.py     level1.csv / level2.csv
     schema.py     pydantic models
     cache.py      on-disk cache
-  tests/          77 tests; fixtures are hand-transcribed sample bills
+  tests/          81 tests; fixtures are hand-transcribed sample bills
 frontend/         React + TypeScript (Vite), no UI library
 ```
 

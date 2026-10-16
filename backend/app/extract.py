@@ -20,7 +20,7 @@ from .prompts import EXTRACTION_PROMPT, RETRY_PROMPT
 from .schema import Bill, Check, RawExtraction
 from .validate import failed_critical, run_checks, score
 
-Reader = Callable[[str, bytes], dict[str, Any]]
+Reader = Callable[[str, bytes, str], dict[str, Any]]
 
 
 @dataclass
@@ -33,8 +33,8 @@ class ExtractionResult:
     notes: list[str] = field(default_factory=list)
 
 
-def _gemini_reader(prompt: str, jpeg: bytes) -> dict[str, Any]:
-    return llm.generate_json(prompt, image_jpeg=jpeg, schema=RawExtraction)
+def _gemini_reader(prompt: str, document: bytes, mime: str) -> dict[str, Any]:
+    return llm.generate_json(prompt, document=document, mime=mime, schema=RawExtraction)
 
 
 def extract_bill(data: bytes, use_cache: bool = True, reader: Reader | None = None) -> ExtractionResult:
@@ -44,14 +44,14 @@ def extract_bill(data: bytes, use_cache: bool = True, reader: Reader | None = No
         return ExtractionResult(bill, run_checks(bill), hit.get("attempts", 1), key, cached=True, notes=hit.get("notes", []))
 
     read = reader or _gemini_reader
-    jpeg = llm.prepare_image(data)
+    document, mime = llm.prepare_document(data)
     prompt = EXTRACTION_PROMPT
     best: tuple[tuple[int, int], Bill, list[Check], list[str]] | None = None
     attempts = 0
 
     for attempts in range(1, settings.max_attempts + 1):
         try:
-            raw = RawExtraction.model_validate(read(prompt, jpeg))
+            raw = RawExtraction.model_validate(read(prompt, document, mime))
         except (ValidationError, llm.LLMError) as exc:
             if isinstance(exc, llm.LLMError) and "invalid JSON" not in str(exc):
                 raise  # config / network problems: retrying the read will not help
@@ -62,9 +62,9 @@ def extract_bill(data: bytes, use_cache: bool = True, reader: Reader | None = No
         if best is None or score(checks) < best[0]:
             best = (score(checks), bill, checks, notes)
 
-        failures = failed_critical(checks)
-        if not failures:
-            break
+        failures = failed_critical(checks) or [c for c in checks if c.status in ("fail", "warn")]
+        if not failures or (not failed_critical(checks) and attempts >= 2):
+            break  # clean, or only soft warnings after a second look
         prompt = "\n\n".join([
             EXTRACTION_PROMPT,
             RETRY_PROMPT.format(failures="\n".join(f"- {c.label}: {c.detail}" for c in failures)),
