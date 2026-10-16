@@ -1,0 +1,130 @@
+{
+  "provider": "IESCO",
+  "bill_month": "2026-08",
+  "issue_date": "2026-08-09",
+  "reading_date": "2026-08-08",
+  "due_date": "2026-08-24",
+  "tariff": "A-1a(01)",
+  "sanctioned_load_kw": 1.0,
+  "connection_category": "Unprotected",
+  "multiplier": 1,
+  "meter_registers": [
+    {
+      "name": "Energy",
+      "previous": 5949.08,
+      "current": 6625.57,
+      "units": 676
+    }
+  ],
+  "units_consumed": 676,
+  "charges": [
+    {
+      "label": "Total Electricity Charges",
+      "type": "energy",
+      "amount": 29807
+    },
+    {
+      "label": "Total FPA",
+      "type": "fpa",
+      "amount": 370.76
+    }
+  ],
+  "taxes": [
+    {
+      "label": "Taxes",
+      "type": "other_tax",
+      "amount": 8516
+    }
+  ],
+  "current_bill": 38323,
+  "arrears": 31203,
+  "fpa_reference_month": "2026-06",
+  "payable_within_due_date": 69897,
+  "late_payment_tiers": [
+    {
+      "until": "2026-08-27",
+      "surcharge": 1491,
+      "total_payable": 71388
+    },
+    {
+      "until": null,
+      "surcharge": 2981,
+      "total_payable": 72878
+    }
+  ],
+  "usage_history": [
+    {
+      "month": "2025-08",
+      "units": 721,
+      "bill_amount": 80594,
+      "payment": 80594
+    },
+    {
+      "month": "2025-09",
+      "units": 597,
+      "bill_amount": 32414,
+      "payment": 0
+    },
+    {
+      "month": "2025-10",
+      "units": 656,
+      "bill_amount": 73264,
+      "payment": 73264
+    },
+    {
+      "month": "2025-11",
+      "units": 182,
+      "bill_amount": 6395,
+      "payment": 6395
+    },
+    {
+      "month": "2025-12",
+      "units": 143,
+      "bill_amount": 4767,
+      "payment": 4767
+    },
+    {
+      "month": "2026-01",
+      "units": 155,
+      "bill_amount": 5816,
+      "payment": 5816
+    },
+    {
+      "month": "2026-02",
+      "units": 175,
+      "bill_amount": 6844,
+      "payment": 0
+    },
+    {
+      "month": "2026-03",
+      "units": 142,
+      "bill_amount": 13546,
+      "payment": 0
+    },
+    {
+      "month": "2026-04",
+      "units": 154,
+      "bill_amount": 20670,
+      "payment": 20670
+    },
+    {
+      "month": "2026-05",
+      "units": 267,
+      "bill_amount": 12125,
+      "payment": 0
+    },
+    {
+      "month": "2026-06",
+      "units": 412,
+      "bill_amount": 34613,
+      "payment": 34613
+    },
+    {
+      "month": "2026-07",
+      "units": 525,
+      "bill_amount": 28959,
+      "payment": 0
+    }
+  ],
+  "net_metering_indicated": false
+}

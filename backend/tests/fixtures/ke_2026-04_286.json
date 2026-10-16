@@ -1,0 +1,158 @@
+{
+  "provider": "K-Electric",
+  "bill_month": "2026-04",
+  "issue_date": "2026-04-06",
+  "reading_date": "2026-04-01",
+  "due_date": "2026-04-20",
+  "tariff": "A1-R",
+  "sanctioned_load_kw": 8,
+  "meter_registers": [
+    {
+      "name": "Off Peak",
+      "previous": 36,
+      "current": 274,
+      "units": 238
+    },
+    {
+      "name": "Peak",
+      "previous": 8,
+      "current": 56,
+      "units": 48
+    }
+  ],
+  "units_consumed": 286,
+  "charges": [
+    {
+      "label": "Fixed Charges",
+      "type": "fixed",
+      "amount": 2700.0
+    },
+    {
+      "label": "Variable Off Peak",
+      "type": "energy",
+      "amount": 8218.14
+    },
+    {
+      "label": "Variable Peak",
+      "type": "energy",
+      "amount": 2248.8
+    },
+    {
+      "label": "Uniform Quarterly Adjustment",
+      "type": "quarterly_adjustment",
+      "amount": 100.22
+    },
+    {
+      "label": "FCA :Feb-26",
+      "type": "fpa",
+      "amount": 290.39
+    },
+    {
+      "label": "Additional Surcharge (PHL)",
+      "type": "surcharge",
+      "amount": 923.78
+    }
+  ],
+  "taxes": [
+    {
+      "label": "Electricity Duty",
+      "type": "electricity_duty",
+      "amount": 176.72
+    },
+    {
+      "label": "Sales Tax u/s 3(1)*",
+      "type": "gst",
+      "amount": 2638.45
+    }
+  ],
+  "printed_total_charges": 14481.33,
+  "printed_total_taxes": 2815.17,
+  "current_bill": 17296.5,
+  "arrears": -0.47,
+  "fpa_reference_month": "2026-02",
+  "payable_within_due_date": 17297,
+  "late_payment_tiers": [
+    {
+      "until": "2026-04-23",
+      "surcharge": 724.07,
+      "total_payable": 18022
+    },
+    {
+      "until": null,
+      "surcharge": 1448.13,
+      "total_payable": 18745
+    }
+  ],
+  "usage_history": [
+    {
+      "month": "2025-04",
+      "units": 214
+    },
+    {
+      "month": "2025-05",
+      "units": 255
+    },
+    {
+      "month": "2025-06",
+      "units": 438
+    },
+    {
+      "month": "2025-07",
+      "units": 306
+    },
+    {
+      "month": "2025-08",
+      "units": 249
+    },
+    {
+      "month": "2025-09",
+      "units": 274
+    },
+    {
+      "month": "2025-10",
+      "units": 277
+    },
+    {
+      "month": "2025-11",
+      "units": 264
+    },
+    {
+      "month": "2025-12",
+      "units": 227
+    },
+    {
+      "month": "2026-01",
+      "units": 169
+    },
+    {
+      "month": "2026-02",
+      "units": 204
+    },
+    {
+      "month": "2026-03",
+      "units": 185
+    },
+    {
+      "month": "2026-04",
+      "units": 286
+    }
+  ],
+  "payment_history": [
+    {
+      "month": "2026-03",
+      "bill_amount": 12136.42,
+      "payment": 12136
+    },
+    {
+      "month": "2026-02",
+      "bill_amount": 12294.67,
+      "payment": 12295
+    },
+    {
+      "month": "2026-01",
+      "bill_amount": 10059.17,
+      "payment": 10059
+    }
+  ],
+  "net_metering_indicated": false
+}
