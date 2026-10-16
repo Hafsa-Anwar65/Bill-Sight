@@ -30,9 +30,9 @@ export default function BillView({ data, image }: { data: Analysis; image?: stri
   const tiers = bill.late_payment_tiers;
 
   const stats = [
-    { icon: Bolt, tone: "violet", value: `${num(units)} units`, label: s.units_last_month != null && units != null ? `${delta(units, s.units_last_month)} vs last month` : "used this month" },
-    { icon: Gauge, tone: "blue", value: rs(s.average_cost_per_unit, 2), label: "average cost per unit" },
-    { icon: Trend, tone: "pink", value: s.units_same_month_last_year != null && units != null ? delta(units, s.units_same_month_last_year) : "—", label: s.units_same_month_last_year != null ? `vs ${num(s.units_same_month_last_year)} units a year ago` : "no data for last year" },
+    { icon: Bolt, tone: "green", value: `${num(units)} units`, label: s.units_last_month != null && units != null ? `${delta(units, s.units_last_month)} vs last month` : "used this month" },
+    { icon: Gauge, tone: "teal", value: rs(s.average_cost_per_unit, 2), label: "average cost per unit" },
+    { icon: Trend, tone: "ruby", value: s.units_same_month_last_year != null && units != null ? delta(units, s.units_same_month_last_year) : "—", label: s.units_same_month_last_year != null ? `vs ${num(s.units_same_month_last_year)} units a year ago` : "no data for last year" },
     { icon: Calendar, tone: "amber", value: `~${num(s.forecast_next_month_units)} units`, label: "expected next month" },
   ];
 

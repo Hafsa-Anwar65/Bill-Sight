@@ -40,8 +40,8 @@ export default function UsageChart({ series, average }: { series: SeriesPoint[];
         <svg className="chart" width={W} height={H} viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Monthly units consumed">
           <defs>
             <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#a855f7" />
-              <stop offset="100%" stopColor="#4f46e5" />
+              <stop offset="0%" stopColor="#e0115f" />
+              <stop offset="100%" stopColor="#9b111e" />
             </linearGradient>
           </defs>
           {average != null && (

@@ -15,9 +15,9 @@ const STEPS = [
 ];
 
 const MOCK = [
-  { icon: Bolt, k: "Units", v: "159", tone: "violet" },
-  { icon: Receipt, k: "Charges", v: "Rs 6,359", tone: "blue" },
-  { icon: Percent, k: "Taxes", v: "Rs 1,261", tone: "pink" },
+  { icon: Bolt, k: "Units", v: "159", tone: "green" },
+  { icon: Receipt, k: "Charges", v: "Rs 6,359", tone: "teal" },
+  { icon: Percent, k: "Taxes", v: "Rs 1,261", tone: "ruby" },
   { icon: Calendar, k: "Due date", v: "22 Sep", tone: "amber" },
 ];
 
