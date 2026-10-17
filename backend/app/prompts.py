@@ -1,6 +1,6 @@
 """Prompts. Bump PROMPT_VERSION whenever a prompt changes so the cache refreshes."""
 
-PROMPT_VERSION = "v3"
+PROMPT_VERSION = "v4"
 
 EXTRACTION_PROMPT = """
 You are reading a Pakistani electricity bill (K-Electric, IESCO, LESCO or another DISCO).
@@ -18,7 +18,10 @@ FIELDS
   ("Protected"/"Unprotected" if printed), multiplier (MF, IESCO/LESCO only).
 - meter_registers: one entry per printed reading row with previous, current and units.
   K-Electric time-of-use bills have two rows ("Off Peak", "Peak"); most bills have one ("Energy").
-- units_consumed: total units billed this month.
+  Net-metering (solar) bills have import AND export rows: name them so the word "Import" or "Export"
+  is in the name (e.g. "Import Off Peak", "Export Peak"). Never add export units to import units.
+- units_consumed: the units the bill charges for, exactly as printed in the Units / Current Month box.
+  On net-metering bills this is the net billed units (import minus export) when that is what is printed.
 
 CHARGES (electricity charges, before taxes). One entry per printed line, label exactly as printed.
   type codes: energy | fixed | fpa | quarterly_adjustment | surcharge | meter_rent | subsidy | other
@@ -31,6 +34,8 @@ CHARGES (electricity charges, before taxes). One entry per printed line, label e
     "Total FPA" -> fpa. Skip any line whose amount is 0.
     Do NOT add "Net Electricity Charges", "Current Bill", "Grand Total" or "Arrears" as charges.
     printed_total_charges = null for this layout.
+  * Net-metering credits (export units credit, solar adjustment) are charge lines with a NEGATIVE
+    amount and type other.
   * Detailed layout (COST OF ELECTRICITY, FUEL PRICE ADJUSTMENT, F.C SURCHARGE, QTR TARIFF ADJ,
     FIXED CHARGES, METER RENT ...): one entry per non-zero line.
 
@@ -50,6 +55,8 @@ TOTALS
 - fpa_reference_month: the month the fuel adjustment relates to, as YYYY-MM ("FCA :Jul-26" -> "2026-07";
   on IESCO/LESCO it is stated in the yellow FPA note, e.g. "Jul 26 ... FPA").
 - payable_within_due_date: "Amount Payable within Due Date" / "Payable Within Due Date" / "Grand Total".
+  If the bill shows 0 or a credit (CR / negative) because earlier credit covers the charges, copy that
+  (0, or the negative number). Put the credit carried in from earlier bills in arrears as a negative number.
 - late_payment_tiers: every printed after-due-date amount, in time order. For each: until (last date
   of that tier, YYYY-MM-DD, or null for the final open-ended tier), surcharge (the printed L.P./LPS
   surcharge amount for that tier), total_payable.
@@ -64,7 +71,7 @@ HISTORY
   bill_amount (Billed Amount), payment.
 
 NET METERING
-- export_units: units exported to the grid if printed (net-metering / solar bills), else null.
+- export_units: total units exported to the grid this month if printed (net-metering / solar bills), else null.
 - net_metering_indicated: true only if the bill prints net metering, export/import readings or a
   solar/net-metering tariff. Otherwise false.
 - net_metering_evidence: one short sentence on what you saw that decided it.

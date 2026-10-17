@@ -6,7 +6,7 @@ correctly; if not, the extractor retries with the failed checks as feedback.
 
 from __future__ import annotations
 
-from .normalize import shift_month
+from .normalize import is_export, shift_month
 from .schema import Bill, Check
 
 ROUNDING = 1.0  # bills round the payable amount to whole rupees
@@ -49,12 +49,21 @@ def run_checks(bill: Bill) -> list[Check]:
     regs = [r for r in bill.meter_registers if r.previous is not None and r.current is not None]
     if regs and bill.units_consumed is not None:
         mf = bill.multiplier or 1
-        from_readings = sum((r.current - r.previous) * mf for r in regs)  # type: ignore[operator]
-        ok = abs(from_readings - bill.units_consumed) <= 1.0
-        checks.append(_check(
-            "units", "Units match meter readings", ok,
-            f"Readings give {from_readings:,.2f} units; bill shows {bill.units_consumed:,.0f}.", critical=True,
-        ))
+        diff = {r.name: (r.current - r.previous) * mf for r in regs}  # type: ignore[operator]
+        exports = [n for n in diff if is_export(n)]
+        imported = sum(v for n, v in diff.items() if n not in exports)
+        exported = sum(diff[n] for n in exports)
+        # Net-metering bills charge for import − export; time-of-use bills add their registers.
+        candidates = {"import − export": imported - exported, "import": imported, "all registers": imported + exported}
+        if not exports:
+            candidates = {"readings": imported}
+        match = next((k for k, v in candidates.items() if abs(v - bill.units_consumed) <= 1.0), None)
+        if exports:
+            detail = (f"Import {imported:,.2f} − export {exported:,.2f} = {imported - exported:,.2f} units; "
+                      f"bill shows {bill.units_consumed:,.0f}.")
+        else:
+            detail = f"Readings give {imported:,.2f} units; bill shows {bill.units_consumed:,.0f}."
+        checks.append(_check("units", "Units match meter readings", match is not None, detail, critical=True))
     else:
         checks.append(_skip("units", "Units match meter readings", "Meter readings not printed."))
 
@@ -92,12 +101,16 @@ def run_checks(bill: Bill) -> list[Check]:
     # 5. Payable reconciles ------------------------------------------------ #
     if bill.payable_within_due_date is not None and bill.charges:
         expected = bill.total_charges + bill.total_taxes + (bill.arrears or 0) + (bill.other_adjustments or 0)
-        ok = abs(expected - bill.payable_within_due_date) <= ROUNDING
-        checks.append(_check(
-            "payable", "Payable amount reconciles", ok,
-            f"Charges + taxes + arrears/adjustments = {_fmt(expected)}; payable {_fmt(bill.payable_within_due_date)}.",
-            critical=True,
-        ))
+        payable = bill.payable_within_due_date
+        ok = abs(expected - payable) <= ROUNDING
+        credit_case = expected < 0 and abs(payable) <= ROUNDING  # credit exceeds charges: nothing to pay
+        ok = ok or credit_case
+        if credit_case:
+            detail = (f"Charges + taxes + arrears/adjustments = {_fmt(expected)}. The credit is larger than this "
+                      f"month's charges, so nothing is payable and {_fmt(-expected)} carries forward.")
+        else:
+            detail = f"Charges + taxes + arrears/adjustments = {_fmt(expected)}; payable {_fmt(payable)}."
+        checks.append(_check("payable", "Payable amount reconciles", ok, detail, critical=True))
 
     # 6. Late payment tiers ------------------------------------------------ #
     if bill.late_payment_tiers and bill.payable_within_due_date is not None:

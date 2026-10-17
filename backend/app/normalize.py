@@ -101,6 +101,10 @@ def parse_date(value: str | None) -> str | None:
     return None
 
 
+def is_export(register_name: str) -> bool:
+    return bool(re.search(r"export|\bexp\b|\(e\)|delivered|solar\s*gen", register_name.lower()))
+
+
 def shift_month(month: str, delta: int) -> str:
     y, m = map(int, month.split("-"))
     total = y * 12 + (m - 1) + delta
@@ -117,6 +121,7 @@ def month_label(month: str) -> str:
 # --------------------------------------------------------------------------- #
 _CHARGE_RULES: list[tuple[str, str]] = [
     (r"subsid", "subsidy"),
+    (r"export|net\s*meter|solar|buy\s*back", "other"),
     (r"\bf\.?c\.?a\b|\bf\.?p\.?a\b|fuel", "fpa"),
     (r"quarter|\bq\.?t\.?a\b|\bu\.?q\.?a\b", "quarterly_adjustment"),
     (r"meter\s*rent|service\s*rent", "meter_rent"),
@@ -261,6 +266,12 @@ def normalize(raw: RawExtraction) -> tuple[Bill, list[str]]:
     notes += history_notes
 
     export_units = raw.export_units if raw.export_units else None
+    if export_units is None:
+        exp = [r for r in registers if is_export(r.name)]
+        if exp:
+            mf = raw.multiplier or 1
+            vals = [r.units if r.units is not None else ((r.current - r.previous) * mf if r.current is not None and r.previous is not None else None) for r in exp]
+            export_units = sum(v for v in vals if v) or None
     net = NetMetering(
         is_net_metered=bool(export_units) or bool(raw.net_metering_indicated),
         export_units=export_units,

@@ -44,7 +44,16 @@ def num(x: float, digits: int = 1) -> str:
 
 
 def pct(new: float, old: float) -> str:
-    return f"{(new - old) / old * 100:+.1f}%" if old else "n/a"
+    return f"{(new - old) / old * 100:+.1f}%" if old and old > 0 else "n/a"
+
+
+def pct_paren(new: float, old: float) -> str:
+    """' (+12.3%)', or nothing when the base is zero or negative (e.g. solar net-export months)."""
+    return f" ({pct(new, old)})" if old and old > 0 else ""
+
+
+def plural(n: int, word: str) -> str:
+    return f"{n} {word}" if n == 1 else f"{n} {word}s"
 
 
 def join_and(items: list[str]) -> str:
@@ -182,7 +191,7 @@ def q5_yoy(f: Facts) -> str:
     verdict = "Yes" if diff > 0 else "No"
     word = "more" if diff > 0 else "fewer"
     return (f"{verdict}. You used {num(now)} units this month versus {num(old)} units in {month_label(ly)}: "
-            f"{num(abs(diff))} {word} units ({pct(now, old)}).")
+            f"{num(abs(diff))} {word} units{pct_paren(now, old)}.")
 
 
 def q6_average(f: Facts) -> str:
@@ -195,7 +204,8 @@ def q6_average(f: Facts) -> str:
     diff = now - avg
     rel = "above" if diff > 0 else "below"
     n = len(d)
-    comparison = (f"This month's {num(now)} units is {num(abs(diff))} units ({abs((diff) / avg * 100):.1f}%) {rel} average."
+    comparison = (f"This month's {num(now)} units is {num(abs(diff))} units"
+                  + (f" ({abs(diff / avg * 100):.1f}%)" if avg > 0 else "") + f" {rel} average."
                   if round(diff, 1) else f"This month's {num(now)} units is exactly average.")
     return f"Your average over the previous {n} months ({span(d['month'].tolist())}) is {num(avg)} units per month. {comparison}"
 
@@ -242,7 +252,7 @@ def q8_payments(f: Facts) -> str:
         elif pay < r["bill_amount"] - 1:
             partial.append(f"{month_label(r['month'])} ({rs(pay)} of {rs(r['bill_amount'])})")
     n = len(d)
-    scope = f"the {n} months shown ({span(months)})"
+    scope = f"the {plural(n, 'month')} shown ({span(months)})"
     arrears = (f" The bill carries arrears of {rs(b.arrears)} into this month."
                if b.arrears and b.arrears > 1 else "")
     if not unpaid and not partial:
@@ -272,7 +282,8 @@ def q9_trend(f: Facts) -> str:
         verdict = "Flat overall"
     else:
         verdict = f"Mixed, {'up' if change > 0 else 'down'} overall"
-    return f"{verdict}. Units went {path}: {'+' if change > 0 else ''}{num(change)} units ({pct(units[-1], units[0])}) across the 3 months."
+    return (f"{verdict}. Units went {path}: {'+' if change > 0 else ''}{num(change)} units"
+            f"{pct_paren(units[-1], units[0])} across the {len(units)} months.")
 
 
 def forecast_next(f: Facts) -> tuple[float | None, str]:
@@ -282,7 +293,7 @@ def forecast_next(f: Facts) -> tuple[float | None, str]:
     nxt = shift_month(b.bill_month, 1)
     ly_next = _units(f.df, shift_month(nxt, -12))
     ly_now = _units(f.df, shift_month(b.bill_month, -12))
-    if ly_next is not None and ly_now:
+    if ly_next is not None and ly_now and ly_now > 0 and ly_next > 0:
         ratio = min(max(b.units_consumed / ly_now, 0.5), 2.0)
         est = round(ly_next * ratio)
         how = (f"{month_label(shift_month(nxt, -12))} used {num(ly_next)} units, and this month is "
@@ -305,11 +316,14 @@ def q11_budget(f: Facts) -> str:
     d = f.last12.copy()
     if d.empty or not b.units_consumed:
         return "The bill does not show enough history to plan a monthly budget."
-    rate = month_cost(b) / b.units_consumed
+    rate = max(month_cost(b), 0) / b.units_consumed
     actual = d["bill_amount"].notna()
     d.loc[~actual, "bill_amount"] = d.loc[~actual, "units"] * rate
     total = d["bill_amount"].sum()
     monthly = total / len(d)
+    if monthly <= 0:
+        return (f"You don't need to set anything aside on average. Over {span(d['month'].tolist())} your credits "
+                f"(for example from solar export) covered your charges, a net of {rs(round(-total))} in your favour.")
     n_act, n_est = int(actual.sum()), int((~actual).sum())
     if n_est:
         basis = (f"{n_act} months use the billed amounts printed on the bill and {n_est} months are estimated "
@@ -331,6 +345,9 @@ def q12_same_as_last(f: Facts) -> str:
     fixed = b.charges_of("fixed")
     cost = month_cost(b)
     est = fixed + (cost - fixed) * last.units / b.units_consumed  # type: ignore[operator]
+    if est <= 0:
+        return (f"About nothing to pay: at {num(last.units)} units (the same as {month_label(last.month)}), this month's "
+                "credits would still cover the charges, so the bill would roughly come to zero.")
     fixed_txt = f", keeping the fixed charge of {rs(fixed)}" if fixed else ""
     actual = (f" For reference, your actual bill for {month_label(last.month)} was {rs(last.bill_amount)}."
               if last.bill_amount else "")
@@ -368,8 +385,8 @@ def summary(bill: Bill) -> dict:
     est, _ = forecast_next(facts)
     return {
         "month_cost": cost,
-        "average_cost_per_unit": round(cost / bill.units_consumed, 2) if bill.units_consumed else None,
-        "tax_share_percent": round(bill.total_taxes / cost * 100, 1) if cost else None,
+        "average_cost_per_unit": round(cost / bill.units_consumed, 2) if bill.units_consumed and cost > 0 else None,
+        "tax_share_percent": round(bill.total_taxes / cost * 100, 1) if cost > 0 else None,
         "total_charges": bill.total_charges,
         "total_taxes": bill.total_taxes,
         "units_last_month": prev.units if prev else None,
@@ -454,8 +471,12 @@ def insights(bill: Bill) -> list[dict[str, str]]:
         when = f" for {month_label(bill.fpa_reference_month)}" if bill.fpa_reference_month else ""
         add("info", f"Fuel adjustment adds {rs(fpa)}", f"A charge for past fuel costs{when}, not for this month's usage.")
 
+    if bill.payable_within_due_date is not None and bill.payable_within_due_date <= 0:
+        add("good", "Nothing to pay this month",
+            "Your earlier credit is larger than this month's charges, so the balance carries forward.")
+
     cost = month_cost(bill)
-    if cost and bill.total_taxes:
+    if cost > 0 and bill.total_taxes:
         add("info", f"Taxes are {bill.total_taxes / cost * 100:.0f}% of this month's charges",
             f"{rs(bill.total_taxes)} of {rs(cost)} goes to taxes and duties.")
 

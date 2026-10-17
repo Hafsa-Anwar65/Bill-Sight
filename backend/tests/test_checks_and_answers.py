@@ -68,3 +68,13 @@ def test_summary_numbers():
     assert s["average_cost_per_unit"] == 47.93
     assert s["late_fee_if_paid_late"] == 317.96
     assert s["series"][-1] == {"month": "2026-09", "units": 159.0, "bill_amount": 7620.53, "current": True}
+
+
+def test_net_metering_bill():
+    bill = bill_of("ke_2026-09_net_metering")
+    checks = {c.id: c for c in run_checks(bill)}
+    assert checks["units"].status == "pass" and "export" in checks["units"].detail
+    assert checks["payable"].status == "pass" and "carries forward" in checks["payable"].detail
+    q1 = next(a for a in answer_all(bill) if a.id == "Q1").answer
+    assert q1.startswith("This is a net-metered (solar) connection")
+    assert bill.net_metering.export_units == 687.18

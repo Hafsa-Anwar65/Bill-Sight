@@ -46,7 +46,9 @@ export default function Reconciliation({ data }: { data: Analysis }) {
       {check && (
         <p className={`recon-verdict ${check.status}`}>
           {check.status === "pass"
-            ? "The lines read from the bill add up to the printed payable amount (rounded to the rupee)."
+            ? payable != null && payable <= 0
+              ? check.detail
+              : "The lines read from the bill add up to the printed payable amount (rounded to the rupee)."
             : `These lines do not add up to the printed amount. ${check.detail}`}
         </p>
       )}

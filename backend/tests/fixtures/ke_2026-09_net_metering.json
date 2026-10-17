@@ -1,0 +1,113 @@
+{
+  "provider": "K-Electric",
+  "bill_month": "2026-09",
+  "issue_date": "2026-09-09",
+  "reading_date": "2026-09-05",
+  "due_date": "2026-09-23",
+  "tariff": "A1-R",
+  "sanctioned_load_kw": 10,
+  "meter_registers": [
+    {
+      "name": "Import",
+      "previous": 10000,
+      "current": 11588.17,
+      "units": 1588.17
+    },
+    {
+      "name": "Export",
+      "previous": 5000,
+      "current": 5687.18,
+      "units": 687.18
+    }
+  ],
+  "units_consumed": 901,
+  "charges": [
+    {
+      "label": "Fixed Charges",
+      "type": "fixed",
+      "amount": 1000
+    },
+    {
+      "label": "Variable Charges",
+      "type": "energy",
+      "amount": 25000
+    }
+  ],
+  "taxes": [
+    {
+      "label": "Sales Tax",
+      "type": "gst",
+      "amount": 7472.24
+    }
+  ],
+  "printed_total_charges": 26000,
+  "printed_total_taxes": 7472.24,
+  "current_bill": 33472.24,
+  "arrears": -79779.01,
+  "payable_within_due_date": 0,
+  "late_payment_tiers": [],
+  "usage_history": [
+    {
+      "month": "2025-09",
+      "units": 700
+    },
+    {
+      "month": "2025-10",
+      "units": 500
+    },
+    {
+      "month": "2025-11",
+      "units": 300
+    },
+    {
+      "month": "2025-12",
+      "units": 250
+    },
+    {
+      "month": "2026-01",
+      "units": 200
+    },
+    {
+      "month": "2026-02",
+      "units": 150
+    },
+    {
+      "month": "2026-03",
+      "units": 100
+    },
+    {
+      "month": "2026-04",
+      "units": 50
+    },
+    {
+      "month": "2026-05",
+      "units": 20
+    },
+    {
+      "month": "2026-06",
+      "units": -100
+    },
+    {
+      "month": "2026-07",
+      "units": -50
+    },
+    {
+      "month": "2026-08",
+      "units": 300
+    },
+    {
+      "month": "2026-09",
+      "units": 901
+    }
+  ],
+  "payment_history": [
+    {
+      "month": "2026-08",
+      "bill_amount": -12000,
+      "payment": 0
+    }
+  ],
+  "export_units": null,
+  "net_metering_indicated": true,
+  "net_metering_evidence": "Import and export readings are printed."
+}
