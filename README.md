@@ -135,6 +135,12 @@ backend/
 frontend/         React + TypeScript (Vite), no UI library
 ```
 
+## Online demo on GitHub Pages (frontend only)
+
+`docs/` holds a static build of the frontend with three sample bills, for GitHub Pages
+(Settings → Pages → Deploy from a branch → `main` / `docs`). It has no server, so it cannot read new
+bills; it shows every feature on the samples. Rebuild it with `cd frontend && npm run build:pages`.
+
 ## Deploy (Vercel, free, straight from GitHub)
 
 1. Push this repo to GitHub (the built frontend in `frontend/dist` is committed).

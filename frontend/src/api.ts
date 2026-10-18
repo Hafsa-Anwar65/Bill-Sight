@@ -1,4 +1,5 @@
 import type { Analysis, Bill, Health } from "./types";
+import { DEMO_MESSAGE, STATIC_DEMO } from "./env";
 
 const OFFLINE = "Can't reach the Billsight server. Start it with: uvicorn app.api:app --port 8000";
 
@@ -18,6 +19,7 @@ function messageFrom(body: unknown, status: number): string {
 }
 
 async function request<T>(url: string, init: RequestInit = {}, timeoutMs = 120_000): Promise<T> {
+  if (STATIC_DEMO) throw new Error(DEMO_MESSAGE);
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   let res: Response;

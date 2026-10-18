@@ -567,3 +567,9 @@ table { width: 100%; border-collapse: collapse; }
   .saved-table th:nth-child(2), .saved-table td:nth-child(2), .saved-table th:nth-child(5), .saved-table td:nth-child(5) { display: none; }
   .empty-state { padding: 22px; }
 }
+.banner.demo { background: var(--brand-soft); color: var(--brand-fg); font-weight: 500; }
+.banner.demo a { color: inherit; font-weight: 700; }
+.nav-link { padding: 8px 16px; border-radius: 999px; color: var(--muted); font-weight: 600; font-size: 0.9rem; text-decoration: none; }
+.nav-link:hover { color: var(--heading); }
+@media (max-width: 700px) { .nav-link { padding: 7px 10px; font-size: 0.85rem; } }
+.landing { overflow-x: clip; }

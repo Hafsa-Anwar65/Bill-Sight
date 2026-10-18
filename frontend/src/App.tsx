@@ -10,6 +10,7 @@ import Toaster from "./components/Toaster";
 import { Bolt, Folder, LogOut, Moon, Sun, Upload } from "./components/Icons";
 import { applyTheme, initialTheme, type Theme } from "./theme";
 import { toast } from "./toast";
+import { REPO_URL, STATIC_DEMO } from "./env";
 
 const Background3D = lazy(() => import("./components/Background3D"));
 
@@ -55,6 +56,7 @@ function Shell() {
 
   useEffect(() => applyTheme(theme), [theme]);
   useEffect(() => {
+    if (STATIC_DEMO) return;
     getHealth()
       .then((h) => !h.api_key_set && setProblem("Add GEMINI_API_KEY to the .env file in the project folder, then restart the server."))
       .catch((e: Error) => setProblem(e.message));
@@ -86,7 +88,9 @@ function Shell() {
             {user
               ? <button aria-current={mode === "mine"} onClick={() => go("mine")}>My bills</button>
               : <button onClick={howItWorks}>How it works</button>}
-            <button aria-current={mode === "batch"} onClick={() => go("batch")}>Batch export</button>
+            {STATIC_DEMO
+              ? <a className="nav-link" href={REPO_URL} target="_blank" rel="noreferrer">GitHub</a>
+              : <button aria-current={mode === "batch"} onClick={() => go("batch")}>Batch export</button>}
           </nav>
 
           <div className="header-actions">
@@ -98,7 +102,7 @@ function Shell() {
             >
               {theme === "dark" ? <Sun /> : <Moon />}
             </button>
-            <UserMenu onMyBills={() => go("mine")} />
+            {!STATIC_DEMO && <UserMenu onMyBills={() => go("mine")} />}
             <button className="btn primary header-cta" onClick={goHome}>
               <Upload /> <span className="cta-text">Upload bill</span>
             </button>
@@ -108,6 +112,12 @@ function Shell() {
 
       <div className="app">
         {problem && <p className="banner error">{problem}</p>}
+        {STATIC_DEMO && (
+          <p className="banner demo">
+            Online demo: open a sample bill to explore every feature. To read your own bill, run Billsight on your
+            computer (<a href={REPO_URL} target="_blank" rel="noreferrer">setup on GitHub</a>).
+          </p>
+        )}
         <main>
           <ErrorBoundary key={`${mode}-${resetKey}`}>
             {mode === "single" && <SingleBill key={resetKey} onMyBills={() => go("mine")} />}

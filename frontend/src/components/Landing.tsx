@@ -1,4 +1,6 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { loadSamples, type Sample } from "../samples";
+import { STATIC_DEMO } from "../env";
 import type { Analysis } from "../types";
 import { dayLabel, monthLabel, rs } from "../format";
 import { clearRecent, loadRecent } from "../storage";
@@ -27,11 +29,13 @@ const MOCK = [
 
 const PROVIDER_NAME: Record<string, string> = { KE: "K-Electric" };
 
-export default function Landing({ onFile, onOpen, onMyBills }: { onFile: (f: File) => void; onOpen: (d: Analysis) => void; onMyBills: () => void }) {
+export default function Landing({ onFile, onOpen, onMyBills, onSample }: { onFile: (f: File) => void; onOpen: (d: Analysis) => void; onMyBills: () => void; onSample: (slug: string) => void }) {
   const { user } = useAuth();
   const picker = useRef<HTMLInputElement>(null);
   const upload = () => picker.current?.click();
   const [recent, setRecent] = useState(loadRecent);
+  const [samples, setSamples] = useState<Sample[]>([]);
+  useEffect(() => { loadSamples().then(setSamples); }, []);
 
   return (
     <div className="landing">
@@ -45,8 +49,12 @@ export default function Landing({ onFile, onOpen, onMyBills }: { onFile: (f: Fil
           </p>
           <p className="hint-line">Photo, scan or PDF. You can also paste a screenshot with Ctrl + V.</p>
           <div className="hero-actions">
-            <button className="btn primary lg" onClick={upload}><Upload /> Upload a bill</button>
-            <a className="btn ghost lg" href="#how">How it works</a>
+            {STATIC_DEMO && samples[0] ? (
+              <button className="btn primary lg" onClick={() => onSample(samples[0].slug)}>See a sample bill</button>
+            ) : (
+              <button className="btn primary lg" onClick={upload}><Upload /> Upload a bill</button>
+            )}
+            <a className="btn ghost lg" href="#samples">Try a sample</a>
           </div>
           <input
             ref={picker}
@@ -101,6 +109,27 @@ export default function Landing({ onFile, onOpen, onMyBills }: { onFile: (f: Fil
                 </span>
                 <span className="recent-month">{monthLabel(data.bill.bill_month, true)}</span>
                 <span className="recent-amount">{rs(data.bill.payable_within_due_date)}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {samples.length > 0 && (
+        <section className="recent" id="samples" aria-label="Sample bills">
+          <div className="panel-head row">
+            <h2 className="section-title"><Sparkle /> Try a sample bill</h2>
+            <span className="muted small">Real bill layouts, personal details removed</span>
+          </div>
+          <div className="recent-grid">
+            {samples.map((s) => (
+              <button key={s.slug} className="recent-card" onClick={() => onSample(s.slug)}>
+                <span className="recent-top">
+                  <span className="recent-provider">{PROVIDER_NAME[s.provider ?? ""] ?? s.provider}</span>
+                  <span className="muted small">{s.units} units</span>
+                </span>
+                <span className="recent-month">{monthLabel(s.bill_month, true)}</span>
+                <span className="recent-amount">{rs(s.payable)}</span>
               </button>
             ))}
           </div>

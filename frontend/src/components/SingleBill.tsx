@@ -5,6 +5,8 @@ import { isPdf } from "../format";
 import { saveRecent } from "../storage";
 import { toast } from "../toast";
 import { useAuth } from "../auth";
+import { loadSample } from "../samples";
+import { STATIC_DEMO } from "../env";
 import Dropzone, { pickValid } from "./Dropzone";
 import Landing from "./Landing";
 import BillView from "./BillView";
@@ -66,7 +68,19 @@ export default function SingleBill({ onMyBills }: { onMyBills: () => void }) {
     window.scrollTo({ top: 0 });
   };
 
-  if (!source) return <Landing onFile={(f) => run(f)} onOpen={openSaved} onMyBills={onMyBills} />;
+  const openSample = async (slug: string) => {
+    try {
+      const data = await loadSample(slug);
+      setSource({ name: `Sample: ${data.bill_id}`, file: null, preview: null, pdf: false });
+      setError(null);
+      setResult(data);
+      window.scrollTo({ top: 0 });
+    } catch (e) {
+      toast((e as Error).message, "error");
+    }
+  };
+
+  if (!source) return <Landing onFile={(f) => run(f)} onOpen={openSaved} onMyBills={onMyBills} onSample={openSample} />;
 
   return (
     <div className="single">
@@ -104,7 +118,7 @@ export default function SingleBill({ onMyBills }: { onMyBills: () => void }) {
           {source.file && <button className="link" onClick={() => source.file && run(source.file, false)}>Try again</button>}
         </div>
       )}
-      {result && !user && (
+      {result && !user && !STATIC_DEMO && (
         <div className="save-hint card">
           <span>Want to keep this bill and compare it with next month?</span>
           <button className="btn primary sm" onClick={() => openAuth("signup")}>Create a free account</button>
