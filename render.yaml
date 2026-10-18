@@ -1,0 +1,18 @@
+# One-click deploy on Render (render.com): New > Blueprint > pick this repo.
+services:
+  - type: web
+    name: billsight
+    runtime: python
+    plan: free
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: cd backend && uvicorn app.api:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      - key: LLM_MODEL
+        value: gemini-3.5-flash-lite
+      - key: SECURE_COOKIES
+        value: "1"
+      - key: GEMINI_API_KEY
+        sync: false   # Render asks for this value; it is never stored in the repo

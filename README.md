@@ -135,9 +135,18 @@ backend/
 frontend/         React + TypeScript (Vite), no UI library
 ```
 
+## Deploy (Vercel, free, straight from GitHub)
+
+1. Push this repo to GitHub (the built frontend in `frontend/dist` is committed).
+2. On vercel.com, sign in with GitHub, choose **Add New → Project**, import the repo and press **Deploy**. `vercel.json` already has every setting.
+3. In the project, open **Storage → Create Database → Neon (Postgres)** and connect it, so accounts and saved bills persist. This adds `DATABASE_URL` automatically.
+4. In **Settings → Environment Variables** add `GEMINI_API_KEY`, `LLM_MODEL` and `SECURE_COOKIES=1`, then redeploy.
+
+Every later `git push` to `main` redeploys automatically. Without a database the app still works, but accounts are temporary.
+
 ## Accounts and privacy
 
-- Accounts live in a local SQLite file, `backend/data/billsight.db` (ignored by git).
+- Accounts live in PostgreSQL when `DATABASE_URL` is set (hosting), otherwise in a local SQLite file, `backend/data/billsight.db` (ignored by git).
 - Passwords are hashed with scrypt and a random salt. Sessions use a random token in an HttpOnly cookie; only its SHA-256 hash is stored.
 - Each user can only list, open or delete their own bills. Bill images are never stored, only the extracted numbers.
 - When serving over HTTPS, set `SECURE_COOKIES=1` in `.env`.

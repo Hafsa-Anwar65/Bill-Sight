@@ -1,0 +1,9 @@
+# Runtime dependencies for hosting (Vercel installs this file). Local dev uses backend/requirements.txt.
+fastapi>=0.115
+python-multipart>=0.0.9
+google-genai>=1.20
+pydantic>=2.7
+pandas>=2.0
+pillow>=10.0
+python-dotenv>=1.0
+psycopg[binary]>=3.2

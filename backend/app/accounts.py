@@ -55,6 +55,10 @@ def _now() -> datetime:
 # --------------------------------------------------------------------------- #
 # Sessions
 # --------------------------------------------------------------------------- #
+def _stamp() -> str:
+    return _now().strftime("%Y-%m-%d %H:%M:%S")
+
+
 def start_session(response: Response, user_id: int) -> None:
     token = secrets.token_urlsafe(32)
     expires = _now() + timedelta(days=settings.session_days)
@@ -71,12 +75,11 @@ def current_user(request: Request) -> dict[str, Any] | None:
     if not token:
         return None
     with db.connect() as conn:
-        row = conn.execute(
+        return conn.one(
             "SELECT u.id, u.name, u.email FROM sessions s JOIN users u ON u.id = s.user_id "
             "WHERE s.token_hash = ? AND s.expires_at > ?",
             (_token_hash(token), _now().isoformat()),
-        ).fetchone()
-    return dict(row) if row else None
+        )
 
 
 def require_user(request: Request) -> dict[str, Any]:
@@ -92,19 +95,19 @@ def require_user(request: Request) -> dict[str, Any]:
 def save_bill(user_id: int, result: dict[str, Any]) -> int:
     bill = result["bill"]
     with db.connect() as conn:
-        conn.execute(
-            """INSERT INTO bills (user_id, image_hash, bill_id, provider, bill_month, units, payable, data)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        row = conn.one(
+            """INSERT INTO bills (user_id, image_hash, bill_id, provider, bill_month, units, payable, data, saved_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                ON CONFLICT (user_id, image_hash) DO UPDATE SET
                  bill_id = excluded.bill_id, provider = excluded.provider, bill_month = excluded.bill_month,
                  units = excluded.units, payable = excluded.payable, data = excluded.data,
-                 saved_at = datetime('now')""",
+                 saved_at = excluded.saved_at
+               RETURNING id""",
             (user_id, result["image_hash"], result["bill_id"], bill.get("provider"), bill.get("bill_month"),
-             bill.get("units_consumed"), bill.get("payable_within_due_date"), json.dumps(result, ensure_ascii=False)),
+             bill.get("units_consumed"), bill.get("payable_within_due_date"), json.dumps(result, ensure_ascii=False),
+             _stamp()),
         )
-        row = conn.execute("SELECT id FROM bills WHERE user_id = ? AND image_hash = ?",
-                           (user_id, result["image_hash"])).fetchone()
-    return int(row["id"])
+    return int(row["id"])  # type: ignore[index]
 
 
 # --------------------------------------------------------------------------- #
@@ -134,11 +137,11 @@ def signup(body: SignUp, response: Response) -> dict:
     if not name:
         raise HTTPException(422, "Enter your name.")
     with db.connect() as conn:
-        if conn.execute("SELECT 1 FROM users WHERE email = ?", (email,)).fetchone():
+        if conn.one("SELECT 1 AS x FROM users WHERE email = ?", (email,)):
             raise HTTPException(409, "An account with this email already exists. Sign in instead.")
-        cur = conn.execute("INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)",
-                           (name, email, hash_password(body.password)))
-        user_id = int(cur.lastrowid)
+        row = conn.one("INSERT INTO users (name, email, password_hash, created_at) VALUES (?, ?, ?, ?) RETURNING id",
+                       (name, email, hash_password(body.password), _stamp()))
+        user_id = int(row["id"])  # type: ignore[index]
     start_session(response, user_id)
     return {"user": {"id": user_id, "name": name, "email": email}}
 
@@ -147,11 +150,11 @@ def signup(body: SignUp, response: Response) -> dict:
 def login(body: SignIn, response: Response) -> dict:
     email = body.email.strip().lower()
     with db.connect() as conn:
-        row = conn.execute("SELECT id, name, email, password_hash FROM users WHERE email = ?", (email,)).fetchone()
+        row = conn.one("SELECT id, name, email, password_hash FROM users WHERE email = ?", (email,))
     if not row or not verify_password(body.password, row["password_hash"]):
         raise HTTPException(401, "Email or password is incorrect.")
     start_session(response, int(row["id"]))
-    return {"user": _public(dict(row))}
+    return {"user": _public(row)}
 
 
 @router.post("/auth/logout")
@@ -173,18 +176,18 @@ def me(request: Request) -> dict:
 @router.get("/bills")
 def list_bills(user: dict = Depends(require_user)) -> dict:
     with db.connect() as conn:
-        rows = conn.execute(
+        rows = conn.all(
             "SELECT id, bill_id, provider, bill_month, units, payable, saved_at FROM bills "
             "WHERE user_id = ? ORDER BY bill_month DESC, saved_at DESC",
             (user["id"],),
-        ).fetchall()
-    return {"bills": [dict(r) for r in rows]}
+        )
+    return {"bills": rows}
 
 
 @router.get("/bills/{bill_pk}")
 def get_bill(bill_pk: int, user: dict = Depends(require_user)) -> dict:
     with db.connect() as conn:
-        row = conn.execute("SELECT data FROM bills WHERE id = ? AND user_id = ?", (bill_pk, user["id"])).fetchone()
+        row = conn.one("SELECT data FROM bills WHERE id = ? AND user_id = ?", (bill_pk, user["id"]))
     if not row:
         raise HTTPException(404, "This bill was not found in your account.")
     return json.loads(row["data"]) | {"saved_id": bill_pk}

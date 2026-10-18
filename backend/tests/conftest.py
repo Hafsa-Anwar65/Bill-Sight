@@ -22,6 +22,11 @@ def isolated_cache(tmp_path, monkeypatch):
 
     object.__setattr__(settings, "cache_dir", tmp_path / "cache")
     object.__setattr__(settings, "db_path", tmp_path / "test.db")
+    if settings.database_url:  # running the suite against Postgres: start every test empty
+        from app import db
+
+        with db.connect() as conn:
+            conn.execute("TRUNCATE users, sessions, bills RESTART IDENTITY CASCADE")
     yield cache
 
 
