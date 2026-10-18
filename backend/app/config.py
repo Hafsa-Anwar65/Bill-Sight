@@ -21,6 +21,9 @@ class Settings:
     seed: int = 42
     max_attempts: int = int(os.getenv("EXTRACT_MAX_ATTEMPTS", "3"))
     cache_dir: Path = Path(os.getenv("CACHE_DIR", str(ROOT / "backend" / ".cache")))
+    db_path: Path = Path(os.getenv("DB_PATH", str(ROOT / "backend" / "data" / "billsight.db")))
+    session_days: int = int(os.getenv("SESSION_DAYS", "30"))
+    secure_cookies: bool = os.getenv("SECURE_COOKIES", "0") == "1"  # set to 1 when served over HTTPS
     frontend_dist: Path = ROOT / "frontend" / "dist"
 
 

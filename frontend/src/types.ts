@@ -71,6 +71,7 @@ export interface Analysis {
   answers: Answer[];
   summary: Summary;
   insights: Insight[];
+  saved_id?: number;
 }
 
 export interface Health { ok: boolean; model: string; api_key_set: boolean }

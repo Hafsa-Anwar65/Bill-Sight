@@ -10,7 +10,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import llm, service
+from . import accounts, llm, service
 from .analysis import answer_all
 from .config import settings
 from .export import level1_csv, level2_csv
@@ -24,9 +24,11 @@ app = FastAPI(title="Billsight", version="2.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.include_router(accounts.router)
 
 
 @app.exception_handler(Exception)
@@ -58,7 +60,7 @@ def health() -> dict:
 
 
 @app.post("/api/analyze")
-async def analyze(file: UploadFile = File(...), use_cache: bool = True) -> dict:
+async def analyze(request: Request, file: UploadFile = File(...), use_cache: bool = True) -> dict:
     ext = Path(file.filename or "").suffix.lower()
     if file.content_type not in ALLOWED_TYPES and ext not in ALLOWED_EXT:
         raise HTTPException(415, "Upload the bill as a PNG, JPG, WEBP image or a PDF.")
@@ -69,9 +71,13 @@ async def analyze(file: UploadFile = File(...), use_cache: bool = True) -> dict:
         raise HTTPException(413, "The file is larger than 15 MB.")
     bill_id = Path(file.filename or "bill").stem
     try:
-        return service.analyze(data, bill_id, use_cache=use_cache)
+        result = service.analyze(data, bill_id, use_cache=use_cache)
     except llm.LLMError as exc:
         raise HTTPException(502, str(exc)) from exc
+    user = accounts.current_user(request)
+    if user:  # signed-in users keep every bill they analyse
+        result["saved_id"] = accounts.save_bill(user["id"], result)
+    return result
 
 
 @app.post("/api/ask")

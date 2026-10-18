@@ -5,7 +5,13 @@ const OFFLINE = "Can't reach the Billsight server. Start it with: uvicorn app.ap
 function messageFrom(body: unknown, status: number): string {
   const detail = (body as { detail?: unknown } | null)?.detail;
   if (typeof detail === "string") return detail;
-  if (Array.isArray(detail)) return "Some of the request was invalid. Please try again.";
+  if (Array.isArray(detail)) {
+    const field = String((detail[0] as { loc?: unknown[] })?.loc?.slice(-1)[0] ?? "");
+    if (field === "password") return "Password must be at least 8 characters.";
+    if (field === "email") return "Enter a valid email address.";
+    if (field === "name") return "Enter your name.";
+    return "Some of the details are invalid. Please check and try again.";
+  }
   if (status === 413) return "The file is larger than 15 MB.";
   if (status >= 500) return "The server had a problem reading this bill. Please try again.";
   return `Request failed (${status}).`;
@@ -46,3 +52,21 @@ export const askQuestion = (bill: Bill, question: string) =>
 
 export const exportCsv = (items: { bill_id: string; bill: Bill | null }[]) =>
   request<{ level1_csv: string; level2_csv: string }>("/api/export", json({ items }));
+
+// ---------- accounts ----------
+export interface User { id: number; name: string; email: string }
+export interface SavedBill {
+  id: number; bill_id: string; provider: string | null; bill_month: string | null;
+  units: number | null; payable: number | null; saved_at: string;
+}
+
+export const getMe = () => request<{ user: User | null }>("/api/auth/me", {}, 8_000);
+export const signUp = (name: string, email: string, password: string) =>
+  request<{ user: User }>("/api/auth/signup", json({ name, email, password }));
+export const signIn = (email: string, password: string) =>
+  request<{ user: User }>("/api/auth/login", json({ email, password }));
+export const signOut = () => request<{ ok: boolean }>("/api/auth/logout", { method: "POST" });
+
+export const listBills = () => request<{ bills: SavedBill[] }>("/api/bills");
+export const getSavedBill = (id: number) => request<Analysis & { saved_id: number }>(`/api/bills/${id}`);
+export const deleteBill = (id: number) => request<{ ok: boolean }>(`/api/bills/${id}`, { method: "DELETE" });

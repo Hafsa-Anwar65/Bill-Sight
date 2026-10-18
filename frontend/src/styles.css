@@ -516,3 +516,54 @@ table { width: 100%; border-collapse: collapse; }
   .lines thead th:nth-child(2), .lines tbody tr:not(.subtotal):not(.group) td:nth-child(2) { display: none; }
   .json-actions .btn { white-space: normal; text-align: center; }
 }
+
+/* ---------- accounts ---------- */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.center { text-align: center; }
+.header-signin { padding: 9px 14px; }
+.user-menu { position: relative; }
+.avatar { width: 40px; height: 40px; border-radius: 50%; border: 0; cursor: pointer; background: var(--grad-ruby); color: #fff; font-weight: 800; font-size: 0.9rem; box-shadow: 0 6px 16px -8px rgb(var(--ruby-rgb) / 0.9); }
+.menu { position: absolute; right: 0; top: calc(100% + 8px); min-width: 230px; padding: 8px; z-index: 50; display: grid; gap: 2px; background: var(--surface); }
+.menu-head { padding: 8px 10px 10px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
+.menu-name { font-weight: 700; color: var(--heading); }
+.menu button { display: flex; align-items: center; gap: 10px; border: 0; background: none; cursor: pointer; padding: 9px 10px; border-radius: 9px; text-align: left; font-weight: 600; color: var(--text); }
+.menu button:hover { background: var(--soft); }
+.menu button svg { width: 18px; height: 18px; color: var(--brand-fg); }
+
+.modal-backdrop { position: fixed; inset: 0; z-index: 70; background: rgb(5 6 5 / 0.55); backdrop-filter: blur(4px); display: grid; place-items: center; padding: 16px; animation: fade 0.15s ease-out; }
+@keyframes fade { from { opacity: 0; } }
+.modal { position: relative; width: min(420px, 100%); padding: 28px; display: grid; gap: 10px; background: var(--surface); max-height: calc(100vh - 32px); overflow-y: auto; }
+.modal h2 { font-size: 1.5rem; font-weight: 800; color: var(--heading); margin-top: 6px; }
+.modal-close { position: absolute; right: 14px; top: 14px; }
+.auth-switch { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; background: var(--soft); border-radius: 12px; margin-top: 6px; }
+.auth-switch button { border: 0; background: none; padding: 8px; border-radius: 9px; cursor: pointer; font-weight: 600; color: var(--muted); }
+.auth-switch button[aria-selected="true"] { background: var(--surface); color: var(--heading); box-shadow: var(--shadow-sm); }
+.auth-form { display: grid; gap: 14px; margin-top: 6px; }
+.auth-form label { display: grid; gap: 6px; font-weight: 600; font-size: 0.9rem; color: var(--heading); }
+.auth-form input { width: 100%; padding: 11px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); color: var(--text); font: inherit; font-weight: 400; }
+.auth-form input:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
+.auth-form small { font-weight: 400; }
+.pw { position: relative; }
+.pw input { padding-right: 44px; }
+.pw .icon-btn { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); }
+.form-error { color: var(--bad); background: var(--bad-bg); padding: 10px 12px; border-radius: 10px; font-size: 0.9rem; font-weight: 500; }
+.auth-form .btn { width: 100%; }
+
+.empty-state { display: grid; gap: 10px; justify-items: start; padding: 32px; }
+.empty-state h2 { font-size: 1.4rem; font-weight: 800; color: var(--heading); }
+.empty-state .hero-actions { margin-top: 8px; }
+.mybills { display: grid; gap: 22px; }
+.saved-table td { vertical-align: middle; }
+.row-actions { display: flex; gap: 6px; justify-content: flex-end; }
+.btn.danger { background: var(--ruby); border-color: var(--ruby); color: #fff; }
+.chart.trend { width: 100%; height: auto; }
+.save-hint { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 12px 16px; margin-bottom: 18px; border-color: var(--brand-line); }
+.recent-links { display: flex; gap: 16px; }
+
+@media (max-width: 700px) {
+  .cta-text { display: none; }
+  .header-cta { padding: 9px 11px; }
+  .header-signin { padding: 8px 10px; font-size: 0.85rem; }
+  .saved-table th:nth-child(2), .saved-table td:nth-child(2), .saved-table th:nth-child(5), .saved-table td:nth-child(5) { display: none; }
+  .empty-state { padding: 22px; }
+}

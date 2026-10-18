@@ -21,6 +21,7 @@ def isolated_cache(tmp_path, monkeypatch):
     from app.config import settings
 
     object.__setattr__(settings, "cache_dir", tmp_path / "cache")
+    object.__setattr__(settings, "db_path", tmp_path / "test.db")
     yield cache
 
 

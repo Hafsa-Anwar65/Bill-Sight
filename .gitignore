@@ -7,3 +7,4 @@ backend/.cache/
 output/
 frontend/node_modules/
 .DS_Store
+backend/data/

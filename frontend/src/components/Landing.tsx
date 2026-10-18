@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import type { Analysis } from "../types";
 import { dayLabel, monthLabel, rs } from "../format";
 import { clearRecent, loadRecent } from "../storage";
+import { useAuth } from "../auth";
 import Dropzone, { ACCEPT, pickValid } from "./Dropzone";
 import { Bolt, Calendar, Check, Clock, Percent, Receipt, Shield, Sparkle, Upload } from "./Icons";
 
@@ -26,7 +27,8 @@ const MOCK = [
 
 const PROVIDER_NAME: Record<string, string> = { KE: "K-Electric" };
 
-export default function Landing({ onFile, onOpen }: { onFile: (f: File) => void; onOpen: (d: Analysis) => void }) {
+export default function Landing({ onFile, onOpen, onMyBills }: { onFile: (f: File) => void; onOpen: (d: Analysis) => void; onMyBills: () => void }) {
+  const { user } = useAuth();
   const picker = useRef<HTMLInputElement>(null);
   const upload = () => picker.current?.click();
   const [recent, setRecent] = useState(loadRecent);
@@ -84,8 +86,11 @@ export default function Landing({ onFile, onOpen }: { onFile: (f: File) => void;
       {recent.length > 0 && (
         <section className="recent" aria-label="Recent bills">
           <div className="panel-head row">
-            <h2 className="section-title"><Clock /> Recent bills</h2>
-            <button className="link" onClick={() => { clearRecent(); setRecent([]); }}>Clear</button>
+            <h2 className="section-title"><Clock /> Recent bills on this device</h2>
+            <span className="recent-links">
+              {user && <button className="link" onClick={onMyBills}>All my saved bills</button>}
+              <button className="link" onClick={() => { clearRecent(); setRecent([]); }}>Clear</button>
+            </span>
           </div>
           <div className="recent-grid">
             {recent.map(({ data, savedAt }) => (

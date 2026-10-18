@@ -12,6 +12,7 @@ Upload a photo of a Pakistani electricity bill (K-Electric, IESCO, LESCO and oth
 - "What this bill tells you": factual tips such as the late fee you avoid, peak vs off-peak cost, arrears, subsidy and next month's forecast.
 - A due-date calendar reminder (.ics), a printable report, copy buttons, recent bills, light and dark themes.
 - Upload a photo, scan or PDF, or paste a screenshot with Ctrl + V.
+- Optional user accounts: sign up, and every bill you analyse is saved to "My bills" with a payable trend. Guests can still use everything without an account.
 
 ## How accuracy is achieved
 
@@ -36,7 +37,7 @@ cd backend
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
-python -m pytest                 # 81 tests, no API key needed
+python -m pytest                 # 89 tests, no API key needed
 ```
 
 ## Run the web app
@@ -128,9 +129,18 @@ backend/
     export.py     level1.csv / level2.csv
     schema.py     pydantic models
     cache.py      on-disk cache
-  tests/          81 tests; fixtures are hand-transcribed sample bills
+    accounts.py   sign up / sign in, sessions, saved bills per user
+    db.py         SQLite database (backend/data/billsight.db)
+  tests/          89 tests; fixtures are hand-transcribed sample bills
 frontend/         React + TypeScript (Vite), no UI library
 ```
+
+## Accounts and privacy
+
+- Accounts live in a local SQLite file, `backend/data/billsight.db` (ignored by git).
+- Passwords are hashed with scrypt and a random salt. Sessions use a random token in an HttpOnly cookie; only its SHA-256 hash is stored.
+- Each user can only list, open or delete their own bills. Bill images are never stored, only the extracted numbers.
+- When serving over HTTPS, set `SECURE_COOKIES=1` in `.env`.
 
 ## AI usage
 

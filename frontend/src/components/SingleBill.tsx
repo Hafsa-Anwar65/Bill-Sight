@@ -4,6 +4,7 @@ import type { Analysis } from "../types";
 import { isPdf } from "../format";
 import { saveRecent } from "../storage";
 import { toast } from "../toast";
+import { useAuth } from "../auth";
 import Dropzone, { pickValid } from "./Dropzone";
 import Landing from "./Landing";
 import BillView from "./BillView";
@@ -11,7 +12,8 @@ import { FileDoc, Refresh } from "./Icons";
 
 interface Source { name: string; file: File | null; preview: string | null; pdf: boolean }
 
-export default function SingleBill() {
+export default function SingleBill({ onMyBills }: { onMyBills: () => void }) {
+  const { user, openAuth } = useAuth();
   const [source, setSource] = useState<Source | null>(null);
   const [result, setResult] = useState<Analysis | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -30,6 +32,7 @@ export default function SingleBill() {
       const data = await analyzeBill(f, useCache);
       setResult(data);
       saveRecent(data);
+      if (data.saved_id) toast("Saved to My bills");
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -63,7 +66,7 @@ export default function SingleBill() {
     window.scrollTo({ top: 0 });
   };
 
-  if (!source) return <Landing onFile={(f) => run(f)} onOpen={openSaved} />;
+  if (!source) return <Landing onFile={(f) => run(f)} onOpen={openSaved} onMyBills={onMyBills} />;
 
   return (
     <div className="single">
@@ -99,6 +102,12 @@ export default function SingleBill() {
         <div className="banner error">
           <span>{error}</span>
           {source.file && <button className="link" onClick={() => source.file && run(source.file, false)}>Try again</button>}
+        </div>
+      )}
+      {result && !user && (
+        <div className="save-hint card">
+          <span>Want to keep this bill and compare it with next month?</span>
+          <button className="btn primary sm" onClick={() => openAuth("signup")}>Create a free account</button>
         </div>
       )}
       {result && <BillView data={result} image={source.preview ?? undefined} isPdf={source.pdf} />}
